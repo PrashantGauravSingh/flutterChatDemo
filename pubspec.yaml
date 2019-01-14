@@ -30,6 +30,7 @@ dependencies:
   shared_preferences:
   cached_network_image:
   video_player: ^0.7.1
+  progress_hud:
 
 
 dev_dependencies:
@@ -54,6 +55,7 @@ flutter:
   #  - images/a_dot_ham.jpeg
   assets:
     - images/img_not_available.jpeg
+    - images/playbutton.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.io/assets-and-images/#resolution-aware.

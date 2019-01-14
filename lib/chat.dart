@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:video_player/video_player.dart';
+import 'package:progress_hud/progress_hud.dart';
 
 class ChatPage extends StatefulWidget {
   ChatPage(this._userName);
@@ -20,11 +20,12 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final _controller = TextEditingController();
+  VideoPlayerController playerController;
+  VoidCallback listener;
   File file;
   bool isLoading;
   bool isShowSticker;
   String imageUrl;
-  VideoPlayerController _controller1;
 
   Future getFile(bool selectType, int type) async {
     if (type == 1)
@@ -36,9 +37,7 @@ class _ChatPageState extends State<ChatPage> {
           ? await ImagePicker.pickVideo(source: ImageSource.gallery)
           : await ImagePicker.pickVideo(source: ImageSource.camera);
     if (file != null) {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() {});
       uploadFile(file, type);
     }
   }
@@ -54,15 +53,42 @@ class _ChatPageState extends State<ChatPage> {
       imageUrl = downloadUrl;
       print(imageUrl);
       setState(() {
-        isLoading = false;
         _imageSubmit(imageUrl, type);
+        buildLoading(false);
       });
     }, onError: (err) {
       setState(() {
-        isLoading = false;
+        buildLoading(false);
       });
       Fluttertoast.showToast(msg: err.toString());
     });
+  }
+
+  void createVideo() {
+    if (playerController == null) {
+      playerController = VideoPlayerController.network(
+          "https://firebasestorage.googleapis.com/v0/b/chatflutter-c3caa.appspot.com/o/img_1547187850813?alt=media&token=565fe956-f39b-4021-987a-1de902f85521")
+        ..addListener(listener)
+        ..setVolume(1.0)
+        ..initialize()
+        ..play();
+      playerController.play();
+    } else {
+      if (playerController.value.isPlaying) {
+        playerController.pause();
+      } else {
+        playerController.initialize();
+        playerController.play();
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    listener = () {
+      setState(() {});
+    };
   }
 
   @override
@@ -197,13 +223,15 @@ class _ChatPageState extends State<ChatPage> {
               SizedBox(
                 height: 10.0,
               ),
-              Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Text(
-                    userName,
-                    style: new TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  )),
+              Container(
+                child: Text(
+                  userName,
+                  style: new TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                ),
+                alignment: Alignment.centerLeft,
+                margin: EdgeInsets.fromLTRB(10.0, 0.0, 0.0, 0.0),
+              ),
               Padding(
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
@@ -239,7 +267,7 @@ class _ChatPageState extends State<ChatPage> {
                 decoration: BoxDecoration(
                   color: Colors.grey,
                   borderRadius: BorderRadius.all(
-                    Radius.circular(8.0),
+                    Radius.circular(10.0),
                   ),
                 ),
               ),
@@ -251,7 +279,7 @@ class _ChatPageState extends State<ChatPage> {
                   fit: BoxFit.cover,
                 ),
                 borderRadius: BorderRadius.all(
-                  Radius.circular(8.0),
+                  Radius.circular(10.0),
                 ),
                 clipBehavior: Clip.hardEdge,
               ),
@@ -285,7 +313,10 @@ class _ChatPageState extends State<ChatPage> {
                   child: Text(
                     message,
                     style: new TextStyle(
-                        fontWeight: FontWeight.normal, color: Colors.grey),
+                      fontWeight: FontWeight.normal,
+                      color: Colors.grey,
+                      decorationStyle: TextDecorationStyle.wavy,
+                    ),
                   )),
               Padding(
                   padding: const EdgeInsets.only(left: 2.0),
@@ -345,7 +376,24 @@ class _ChatPageState extends State<ChatPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: new Container(),
+            child: InkWell(
+              child: Container(
+                decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(10.0),
+                    image: DecorationImage(
+                        image: ExactAssetImage('images/playbutton.png'),
+                        fit: BoxFit.cover)),
+                width: 150.0,
+                height: 150.0,
+                child: (playerController != null
+                    ? VideoPlayer(
+                        playerController,
+                      )
+                    : Container()),
+              ),
+              onTap: createVideo,
+            ),
           ),
         ],
       );
@@ -359,9 +407,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _message(String message, String userName, DateTime time, String msgUrl,
-      int msgType) {
-    if (msgUrl != "") {
-      return Row(
+      int messageType) {
+    if (messageType == 1) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.all(2.0),
@@ -370,22 +419,20 @@ class _ChatPageState extends State<ChatPage> {
               backgroundColor: Colors.deepPurple,
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(1.0),
+            child: Text(
+              userName,
+              style: new TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey,
+              ),
+            ),
+          ),
           Column(
-            // crossAxisAlignment: CrossAxisAlignment.center,
-
             children: <Widget>[
               SizedBox(
                 height: 10.0,
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Text(
-                  userName,
-                  style: new TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
-                  ),
-                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(2.0),
@@ -421,7 +468,7 @@ class _ChatPageState extends State<ChatPage> {
                     decoration: BoxDecoration(
                       color: Colors.grey,
                       borderRadius: BorderRadius.all(
-                        Radius.circular(8.0),
+                        Radius.circular(10.0),
                       ),
                     ),
                   ),
@@ -433,7 +480,7 @@ class _ChatPageState extends State<ChatPage> {
                       fit: BoxFit.cover,
                     ),
                     borderRadius: BorderRadius.all(
-                      Radius.circular(8.0),
+                      Radius.circular(10.0),
                     ),
                     clipBehavior: Clip.hardEdge,
                   ),
@@ -445,6 +492,68 @@ class _ChatPageState extends State<ChatPage> {
               )
             ],
           )
+        ],
+      );
+    } else if (messageType == 2) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              SizedBox(
+                height: 10.0,
+              ),
+              Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Text(
+                    userName,
+                    style: new TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                  )),
+              Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: Text(
+                    message,
+                    style: new TextStyle(
+                        fontWeight: FontWeight.normal, color: Colors.grey),
+                  )),
+              Padding(
+                  padding: const EdgeInsets.only(left: 2.0),
+                  child: Text(
+                    dateFormatter(time),
+                    style: new TextStyle(
+                        fontWeight: FontWeight.normal, color: Colors.grey),
+                  )),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: CircleAvatar(
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: InkWell(
+              child: Container(
+                decoration: BoxDecoration(
+                    color: Colors.black87,
+                    image: DecorationImage(
+                        image: ExactAssetImage('images/playbutton.png'),
+                        fit: BoxFit.cover)),
+
+                width: 150.0,
+                height: 150.0,
+                child: (playerController != null
+                    ? VideoPlayer(
+                        playerController,
+                      )
+                    : Container()),
+              ),
+              onTap: createVideo,
+            ),
+          ),
         ],
       );
     } else {
@@ -501,6 +610,20 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Widget buildLoading(bool loading) {
+    return Positioned(
+      child: loading
+          ? Container(
+              child: Center(
+                child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green)),
+              ),
+              color: Colors.white.withOpacity(0.8),
+            )
+          : Container(),
+    );
+  }
+
 // user defined function
   void _selectFile() {
     // flutter defined function
@@ -520,8 +643,9 @@ class _ChatPageState extends State<ChatPage> {
                     children: <Widget>[Icon(Icons.camera), Text("Camera")],
                   ),
                   onPressed: () {
-                    getFile(false, 0);
+                    getFile(false, 1);
                     Navigator.of(context).pop();
+                    buildLoading(true);
                   },
                 ),
                 new FlatButton(
@@ -530,7 +654,8 @@ class _ChatPageState extends State<ChatPage> {
                     children: <Widget>[Icon(Icons.photo), Text("Image")],
                   ),
                   onPressed: () {
-                    getFile(true, 0);
+                    getFile(true, 1);
+                    buildLoading(true);
                     Navigator.of(context).pop();
                   },
                 ),
@@ -543,7 +668,8 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                   onPressed: () {
-                    getFile(true, 1);
+                    getFile(true, 2);
+                    buildLoading(true);
                     Navigator.of(context).pop();
                   },
                 )
