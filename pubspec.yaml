@@ -31,6 +31,8 @@ dependencies:
   cached_network_image:
   video_player: ^0.7.1
   progress_hud:
+  random_string: ^0.0.2
+  chewie:
 
 
 dev_dependencies:
